@@ -31,13 +31,13 @@ export default async function ArticlePage({ params }: { params: Promise<{ id: st
   let related: Article[] = [];
 
   try {
-    const { rows } = await sql`
+    const rows = await sql`
       SELECT id, title, summary, category, image_url, source, source_url, published_at, created_at
       FROM articles WHERE id = ${numId} AND status = 'published'`;
     article = rows[0] as Article | undefined;
 
     if (article) {
-      const { rows: relRows } = await sql`
+      const relRows = await sql`
         SELECT id, title, summary, category, image_url, source, source_url, published_at, created_at
         FROM articles
         WHERE status = 'published' AND id != ${numId}
@@ -70,7 +70,6 @@ export default async function ArticlePage({ params }: { params: Promise<{ id: st
           </nav>
 
           <article className="bg-white shadow-sm">
-            {/* Article header */}
             <div className="p-6 md:p-8 pb-0">
               <div className="flex items-center gap-3 mb-4">
                 <CategoryBadge category={article.category} />

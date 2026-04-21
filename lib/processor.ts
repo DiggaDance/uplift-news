@@ -16,7 +16,7 @@ export async function runNewsProcessor() {
   for (const article of articles) {
     if (!article.url) { skipped++; continue; }
 
-    const { rows: existing } = await sql`SELECT id FROM articles WHERE url = ${article.url}`;
+    const existing = await sql`SELECT id FROM articles WHERE url = ${article.url}`;
     if (existing.length > 0) { skipped++; continue; }
 
     try {

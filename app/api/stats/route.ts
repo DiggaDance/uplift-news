@@ -4,11 +4,11 @@ import { RSS_FEEDS } from '@/lib/rss';
 export async function GET() {
   const today = new Date().toISOString().split('T')[0];
 
-  const { rows: todayRows } = await sql`
+  const todayRows = await sql`
     SELECT COUNT(*) as count FROM articles
     WHERE status = 'published' AND created_at::date = ${today}::date`;
 
-  const { rows: totalRows } = await sql`
+  const totalRows = await sql`
     SELECT COUNT(*) as count FROM articles WHERE status = 'published'`;
 
   return Response.json({

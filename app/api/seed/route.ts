@@ -147,15 +147,16 @@ export async function GET() {
     let skipped = 0;
 
     for (const article of SEED_ARTICLES) {
-      const { rowCount } = await sql`
+      const result = await sql`
         INSERT INTO articles (url, title, summary, category, image_url, source, source_url, published_at, status)
         VALUES (
           ${article.url}, ${article.title}, ${article.summary}, ${article.category},
           ${article.image_url}, ${article.source}, ${article.source_url},
           ${new Date().toISOString()}, 'published'
         )
-        ON CONFLICT (url) DO NOTHING`;
-      if (rowCount && rowCount > 0) inserted++; else skipped++;
+        ON CONFLICT (url) DO NOTHING
+        RETURNING id`;
+      if (result.length > 0) inserted++; else skipped++;
     }
 
     return Response.json({

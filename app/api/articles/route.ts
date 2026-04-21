@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
 
   const filterByCategory = category && category !== 'Alle';
 
-  const { rows: articles } = filterByCategory
+  const articles = filterByCategory
     ? await sql`
         SELECT id, title, summary, category, image_url, source, source_url, published_at, created_at
         FROM articles
@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
         ORDER BY created_at DESC
         LIMIT ${limit} OFFSET ${offset}`;
 
-  const { rows: countRows } = filterByCategory
+  const countRows = filterByCategory
     ? await sql`SELECT COUNT(*) as count FROM articles WHERE status = 'published' AND category = ${category}`
     : await sql`SELECT COUNT(*) as count FROM articles WHERE status = 'published'`;
 
