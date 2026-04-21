@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { getDb } from '@/lib/db';
+import { sql } from '@/lib/db';
 import type { Article } from '@/app/page';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -25,39 +25,25 @@ function formatDate(dateStr: string) {
 
 export default async function ArticlePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const numId = parseInt(id);
 
   let article: Article | undefined;
   let related: Article[] = [];
 
   try {
-    const db = getDb();
-    article = db
-      .prepare(
-        `SELECT id, title, summary, category, image_url, source, source_url, published_at, created_at
-         FROM articles WHERE id = ? AND status = 'published'`
-      )
-      .get(id) as Article | undefined;
+    const { rows } = await sql`
+      SELECT id, title, summary, category, image_url, source, source_url, published_at, created_at
+      FROM articles WHERE id = ${numId} AND status = 'published'`;
+    article = rows[0] as Article | undefined;
 
     if (article) {
-      related = db
-        .prepare(
-          `SELECT id, title, summary, category, image_url, source, source_url, published_at, created_at
-           FROM articles WHERE status = 'published' AND id != ? AND category = ?
-           ORDER BY created_at DESC LIMIT 3`
-        )
-        .all(id, article.category) as Article[];
-
-      if (related.length < 3) {
-        const extra = db
-          .prepare(
-            `SELECT id, title, summary, category, image_url, source, source_url, published_at, created_at
-             FROM articles WHERE status = 'published' AND id != ?
-             AND id NOT IN (${related.map(() => '?').join(',') || '0'})
-             ORDER BY created_at DESC LIMIT ?`
-          )
-          .all(id, ...related.map((r) => r.id), 3 - related.length) as Article[];
-        related = [...related, ...extra];
-      }
+      const { rows: relRows } = await sql`
+        SELECT id, title, summary, category, image_url, source, source_url, published_at, created_at
+        FROM articles
+        WHERE status = 'published' AND id != ${numId}
+        ORDER BY (category = ${article.category}) DESC, created_at DESC
+        LIMIT 3`;
+      related = relRows as Article[];
     }
   } catch {
     notFound();

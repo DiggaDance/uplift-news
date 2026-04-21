@@ -1,10 +1,9 @@
-import { getDb } from './db';
+import { sql } from './db';
 import { fetchAllFeeds } from './rss';
 import { processArticle } from './ai';
 import { fetchUnsplashImage } from './images';
 
 export async function runNewsProcessor() {
-  const db = getDb();
   let processed = 0;
   let skipped = 0;
   let errors = 0;
@@ -14,17 +13,11 @@ export async function runNewsProcessor() {
   const articles = await fetchAllFeeds();
   console.log(`[Processor] ${articles.length} Artikel aus RSS-Feeds geladen`);
 
-  const insertProcessed = db.prepare(`
-    INSERT OR IGNORE INTO articles
-      (url, title, summary, category, image_url, source, source_url, published_at, status)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `);
-
   for (const article of articles) {
     if (!article.url) { skipped++; continue; }
 
-    const existing = db.prepare('SELECT id FROM articles WHERE url = ?').get(article.url);
-    if (existing) { skipped++; continue; }
+    const { rows: existing } = await sql`SELECT id FROM articles WHERE url = ${article.url}`;
+    if (existing.length > 0) { skipped++; continue; }
 
     try {
       console.log(`[Processor] Verarbeite: ${article.title.substring(0, 60)}…`);
@@ -37,27 +30,22 @@ export async function runNewsProcessor() {
 
       if (!result.isPositive) {
         console.log(`[Processor] ✗ Verworfen (nicht positiv): ${article.title.substring(0, 50)}`);
-        insertProcessed.run(
-          article.url, null, null, null, null,
-          article.source, article.sourceUrl, article.publishedAt, 'rejected'
-        );
+        await sql`
+          INSERT INTO articles (url, title, summary, category, image_url, source, source_url, published_at, status)
+          VALUES (${article.url}, ${null}, ${null}, ${null}, ${null},
+                  ${article.source}, ${article.sourceUrl}, ${article.publishedAt}, 'rejected')
+          ON CONFLICT (url) DO NOTHING`;
         skipped++;
         continue;
       }
 
       const imageUrl = await fetchUnsplashImage(result.imageQuery);
 
-      insertProcessed.run(
-        article.url,
-        result.title,
-        result.summary,
-        result.category,
-        imageUrl,
-        article.source,
-        article.sourceUrl,
-        article.publishedAt,
-        'published'
-      );
+      await sql`
+        INSERT INTO articles (url, title, summary, category, image_url, source, source_url, published_at, status)
+        VALUES (${article.url}, ${result.title}, ${result.summary}, ${result.category}, ${imageUrl},
+                ${article.source}, ${article.sourceUrl}, ${article.publishedAt}, 'published')
+        ON CONFLICT (url) DO NOTHING`;
 
       console.log(`[Processor] ✓ Gespeichert: ${result.title}`);
       processed++;

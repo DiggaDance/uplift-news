@@ -1,21 +1,19 @@
-import { getDb } from '@/lib/db';
+import { sql } from '@/lib/db';
 import { RSS_FEEDS } from '@/lib/rss';
 
 export async function GET() {
-  const db = getDb();
   const today = new Date().toISOString().split('T')[0];
 
-  const { todayCount } = db
-    .prepare(`SELECT COUNT(*) as todayCount FROM articles WHERE status = 'published' AND DATE(created_at) = ?`)
-    .get(today) as { todayCount: number };
+  const { rows: todayRows } = await sql`
+    SELECT COUNT(*) as count FROM articles
+    WHERE status = 'published' AND created_at::date = ${today}::date`;
 
-  const { totalCount } = db
-    .prepare(`SELECT COUNT(*) as totalCount FROM articles WHERE status = 'published'`)
-    .get() as { totalCount: number };
+  const { rows: totalRows } = await sql`
+    SELECT COUNT(*) as count FROM articles WHERE status = 'published'`;
 
   return Response.json({
-    todayCount,
-    totalCount,
+    todayCount: Number(todayRows[0].count),
+    totalCount: Number(totalRows[0].count),
     sourcesCount: RSS_FEEDS.length,
   });
 }

@@ -1,4 +1,4 @@
-import { getDb } from '@/lib/db';
+import { sql } from '@/lib/db';
 
 export async function POST(request: Request) {
   try {
@@ -9,9 +9,8 @@ export async function POST(request: Request) {
       return Response.json({ error: 'Bitte eine gültige E-Mail-Adresse eingeben.' }, { status: 400 });
     }
 
-    const db = getDb();
     try {
-      db.prepare('INSERT INTO newsletter_subscribers (email) VALUES (?)').run(email);
+      await sql`INSERT INTO newsletter_subscribers (email) VALUES (${email})`;
       return Response.json({ success: true, message: 'Erfolgreich angemeldet! Willkommen bei Uplift.news.' });
     } catch {
       return Response.json({ error: 'Diese E-Mail ist bereits angemeldet.' }, { status: 409 });
