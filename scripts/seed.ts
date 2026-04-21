@@ -1,20 +1,19 @@
-import Database from 'better-sqlite3';
+import { neon } from '@neondatabase/serverless';
+import { config } from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const DB_PATH = path.join(__dirname, '..', 'data', 'uplift.db');
+config({ path: path.join(__dirname, '..', '.env.local') });
 
-const db = new Database(DB_PATH);
-db.pragma('journal_mode = WAL');
+if (!process.env.POSTGRES_URL) {
+  console.error('POSTGRES_URL is not set. Make sure .env.local exists.');
+  process.exit(1);
+}
 
-const insert = db.prepare(`
-  INSERT OR IGNORE INTO articles (url, title, summary, category, image_url, source, source_url, published_at, status)
-  VALUES (@url, @title, @summary, @category, @image_url, @source, @source_url, @published_at, 'published')
-`);
+const sql = neon(process.env.POSTGRES_URL);
 
 const articles = [
-  // Wissenschaft
   {
     url: 'https://www.nature.com/articles/solar-energy-record-2026',
     title: 'Durchbruch: Neue Solarzelle erreicht Wirkungsgrad von 47 Prozent',
@@ -23,7 +22,6 @@ const articles = [
     image_url: 'https://images.unsplash.com/photo-1509391366360-2e959784a276?w=800&q=80',
     source: 'Nature Energy',
     source_url: 'https://www.nature.com',
-    published_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
   },
   {
     url: 'https://www.science.org/articles/alzheimer-vaccine-trial-2026',
@@ -33,10 +31,7 @@ const articles = [
     image_url: 'https://images.unsplash.com/photo-1532187643603-ba119ca4109e?w=800&q=80',
     source: 'Science Magazine',
     source_url: 'https://www.science.org',
-    published_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
   },
-
-  // Natur
   {
     url: 'https://www.wwf.de/berichte/wolf-population-wachstum-2026',
     title: 'Wölfe kehren zurück: Population in Deutschland wächst auf über 2.000 Tiere',
@@ -45,7 +40,6 @@ const articles = [
     image_url: 'https://images.unsplash.com/photo-1474511320723-9a56873867b5?w=800&q=80',
     source: 'WWF Deutschland',
     source_url: 'https://www.wwf.de',
-    published_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
   },
   {
     url: 'https://www.nabu.de/meldungen/korallenriff-wiederherstellung-2026',
@@ -55,10 +49,7 @@ const articles = [
     image_url: 'https://images.unsplash.com/photo-1546026423-cc4642628d2b?w=800&q=80',
     source: 'NABU',
     source_url: 'https://www.nabu.de',
-    published_at: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
   },
-
-  // Menschen
   {
     url: 'https://www.zeit.de/gesellschaft/schule-finnland-modell-2026',
     title: 'Junger Lehrer aus Bayern revolutioniert Schulunterricht mit finnischem Modell',
@@ -67,7 +58,6 @@ const articles = [
     image_url: 'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=800&q=80',
     source: 'Die Zeit',
     source_url: 'https://www.zeit.de',
-    published_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
   },
   {
     url: 'https://www.sueddeutsche.de/gesellschaft/gemeinschaft-dorf-wiederbelebung-2026',
@@ -77,10 +67,7 @@ const articles = [
     image_url: 'https://images.unsplash.com/photo-1464082354059-27db6ce50048?w=800&q=80',
     source: 'Süddeutsche Zeitung',
     source_url: 'https://www.sueddeutsche.de',
-    published_at: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString(),
   },
-
-  // Wirtschaft
   {
     url: 'https://www.handelsblatt.com/wirtschaft/gruendungen-rekordjahr-2026',
     title: 'Rekordjahr für Start-ups: Deutschland verzeichnet höchste Gründungsquote seit 20 Jahren',
@@ -89,7 +76,6 @@ const articles = [
     image_url: 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=800&q=80',
     source: 'Handelsblatt',
     source_url: 'https://www.handelsblatt.com',
-    published_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
   },
   {
     url: 'https://www.wirtschaftswoche.de/fairtrade-wachstum-2026',
@@ -99,10 +85,7 @@ const articles = [
     image_url: 'https://images.unsplash.com/photo-1488459716781-31db52582fe9?w=800&q=80',
     source: 'WirtschaftsWoche',
     source_url: 'https://www.wiwo.de',
-    published_at: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString(),
   },
-
-  // Gesundheit
   {
     url: 'https://www.aerzteblatt.de/nachrichten/herzerkrankungen-rueckgang-2026',
     title: 'Herzerkrankungen in Europa auf niedrigstem Stand seit 30 Jahren',
@@ -111,7 +94,6 @@ const articles = [
     image_url: 'https://images.unsplash.com/photo-1505751172876-fa1923c5c528?w=800&q=80',
     source: 'Deutsches Ärzteblatt',
     source_url: 'https://www.aerzteblatt.de',
-    published_at: new Date(Date.now() - 9 * 24 * 60 * 60 * 1000).toISOString(),
   },
   {
     url: 'https://www.spiegel.de/gesundheit/mentale-gesundheit-programme-schulen-2026',
@@ -121,10 +103,7 @@ const articles = [
     image_url: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=800&q=80',
     source: 'Der Spiegel',
     source_url: 'https://www.spiegel.de',
-    published_at: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
   },
-
-  // Tiere
   {
     url: 'https://www.geo.de/natur/tiere/seeadler-comeback-2026',
     title: 'Seeadler-Comeback: Über 1.000 Brutpaare in Deutschland – historischer Rekord',
@@ -133,7 +112,6 @@ const articles = [
     image_url: 'https://images.unsplash.com/photo-1611689342806-0863700ce1e4?w=800&q=80',
     source: 'GEO Magazin',
     source_url: 'https://www.geo.de',
-    published_at: new Date(Date.now() - 11 * 24 * 60 * 60 * 1000).toISOString(),
   },
   {
     url: 'https://www.nationalgeographic.de/tiere/elefanten-kenia-schutz-2026',
@@ -143,19 +121,23 @@ const articles = [
     image_url: 'https://images.unsplash.com/photo-1564760055775-d63b17a55c44?w=800&q=80',
     source: 'National Geographic Deutschland',
     source_url: 'https://www.nationalgeographic.de',
-    published_at: new Date(Date.now() - 12 * 24 * 60 * 60 * 1000).toISOString(),
   },
 ];
 
-const insertMany = db.transaction((items: typeof articles) => {
-  let count = 0;
-  for (const article of items) {
-    const result = insert.run(article);
-    if (result.changes > 0) count++;
-  }
-  return count;
-});
+let inserted = 0;
+let skipped = 0;
 
-const inserted = insertMany(articles);
-console.log(`✓ ${inserted} Artikel erfolgreich eingefügt (${articles.length - inserted} bereits vorhanden).`);
-db.close();
+for (const article of articles) {
+  const result = await sql`
+    INSERT INTO articles (url, title, summary, category, image_url, source, source_url, published_at, status)
+    VALUES (
+      ${article.url}, ${article.title}, ${article.summary}, ${article.category},
+      ${article.image_url}, ${article.source}, ${article.source_url},
+      ${new Date().toISOString()}, 'published'
+    )
+    ON CONFLICT (url) DO NOTHING
+    RETURNING id`;
+  if (result.length > 0) inserted++; else skipped++;
+}
+
+console.log(`✓ ${inserted} Artikel eingefügt, ${skipped} bereits vorhanden.`);
