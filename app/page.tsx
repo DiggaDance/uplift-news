@@ -1,4 +1,4 @@
-import { getDb } from '@/lib/db';
+import { sql } from '@/lib/db';
 import Header from '@/components/Header';
 import HeroSection from '@/components/HeroSection';
 import NewsPage from '@/components/NewsPage';
@@ -18,29 +18,24 @@ export interface Article {
   created_at: string;
 }
 
-function getInitialData() {
+async function getInitialData() {
   try {
-    const db = getDb();
-    const articles = db
-      .prepare(
-        `SELECT id, title, summary, category, image_url, source, source_url, published_at, created_at
-         FROM articles WHERE status = 'published'
-         ORDER BY created_at DESC LIMIT 21`
-      )
-      .all() as Article[];
+    const articles = await sql`
+      SELECT id, title, summary, category, image_url, source, source_url, published_at, created_at
+      FROM articles WHERE status = 'published'
+      ORDER BY created_at DESC LIMIT 21` as Article[];
 
-    const { count } = db
-      .prepare(`SELECT COUNT(*) as count FROM articles WHERE status = 'published'`)
-      .get() as { count: number };
+    const countRows = await sql`
+      SELECT COUNT(*) as count FROM articles WHERE status = 'published'`;
 
-    return { articles, total: count };
+    return { articles, total: Number(countRows[0].count) };
   } catch {
     return { articles: [], total: 0 };
   }
 }
 
-export default function Home() {
-  const { articles, total } = getInitialData();
+export default async function Home() {
+  const { articles, total } = await getInitialData();
   const [hero, ...rest] = articles;
 
   return (
