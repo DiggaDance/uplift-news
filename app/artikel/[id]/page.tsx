@@ -129,7 +129,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ id: st
                   Weitere positive Nachrichten
                 </h2>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4" style={{ gridAutoRows: '200px' }}>
                 {related.map((rel) => (
                   <ArticleCard key={rel.id} article={rel} />
                 ))}
