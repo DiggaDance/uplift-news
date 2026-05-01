@@ -1,16 +1,28 @@
+const CATEGORY_MAP: Record<string, { emoji: string; label: string }> = {
+  Natur: { emoji: '🌿', label: 'Natur-Wunder' },
+  Tiere: { emoji: '🌿', label: 'Natur-Wunder' },
+  Wissenschaft: { emoji: '🚀', label: 'Zukunftsmacher' },
+  Wirtschaft: { emoji: '🏆', label: 'Heldentaten' },
+  Menschen: { emoji: '❤️', label: 'Herzstücke' },
+  Gesundheit: { emoji: '💡', label: 'Geistesblitze' },
+};
+
 export const CATEGORY_COLORS: Record<string, string> = {
-  Wissenschaft: 'bg-[#3DAA5C]',
-  Natur: 'bg-[#2d8a49]',
-  Menschen: 'bg-[#48b86a]',
-  Wirtschaft: 'bg-[#1a7a40]',
-  Gesundheit: 'bg-[#3DAA5C]',
-  Tiere: 'bg-[#5bc97a]',
+  Wissenschaft: 'bg-blue-500',
+  Natur: 'bg-emerald-500',
+  Menschen: 'bg-rose-500',
+  Wirtschaft: 'bg-amber-600',
+  Gesundheit: 'bg-purple-500',
+  Tiere: 'bg-emerald-500',
 };
 
 export default function CategoryBadge({ category }: { category: string }) {
+  const cat = CATEGORY_MAP[category];
+  const emoji = cat?.emoji ?? '✨';
+  const label = cat?.label ?? category;
   return (
-    <span className="inline-block text-xs font-black px-2.5 py-1 bg-[#3DAA5C] text-white uppercase tracking-wide">
-      {category}
+    <span className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full bg-white/90 backdrop-blur-sm text-[#1A1A2E] shadow-sm">
+      {emoji} {label}
     </span>
   );
 }
