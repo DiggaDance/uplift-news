@@ -1,31 +1,43 @@
 import { notFound } from 'next/navigation';
-import Image from 'next/image';
 import Link from 'next/link';
 import { sql } from '@/lib/db';
 import type { Article } from '@/app/page';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import ArticleCard from '@/components/ArticleCard';
-import CategoryBadge from '@/components/CategoryBadge';
+import ArticleCard, { ArticleImage } from '@/components/ArticleCard';
+import Reactions from '@/components/Reactions';
+import { getCategoryHue, getCategoryLabel } from '@/lib/categories';
 
 export const dynamic = 'force-dynamic';
 
-function formatDate(dateStr: string) {
+function fmtDate(iso: string): string {
   try {
     return new Intl.DateTimeFormat('de-DE', {
-      weekday: 'long',
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    }).format(new Date(dateStr));
-  } catch {
-    return '';
-  }
+      day: 'numeric', month: 'long', year: 'numeric',
+    }).format(new Date(iso));
+  } catch { return ''; }
+}
+
+function readTime(summary: string): number {
+  return Math.max(2, Math.round((summary ?? '').split(/\s+/).length / 180));
+}
+
+function Avatar({ name }: { name: string }) {
+  const initials = name.split(/[\s.-]+/).map(s => s[0]).filter(Boolean).slice(0, 2).join('').toUpperCase();
+  return <div className="avatar">{initials}</div>;
+}
+
+function IconBack() {
+  return (
+    <svg style={{ width: 14, height: 14 }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M19 12H5M11 6l-6 6 6 6" />
+    </svg>
+  );
 }
 
 export default async function ArticlePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const numId = parseInt(id);
+  const numId = parseInt(id, 10);
 
   let article: Article | undefined;
   let related: Article[] = [];
@@ -51,101 +63,104 @@ export default async function ArticlePage({ params }: { params: Promise<{ id: st
 
   if (!article) notFound();
 
-  const sentences = article.summary?.split('. ').filter(Boolean) ?? [];
+  const hue = getCategoryHue(article.category);
+  const label = getCategoryLabel(article.category);
+  const rt = readTime(article.summary ?? '');
+
+  const sentences = (article.summary ?? '').split(/(?<=[.!?])\s+/).filter(Boolean);
+  const lede = sentences[0] ?? '';
+  const body = sentences.slice(1);
 
   return (
     <>
       <Header />
-      <div className="bg-[#F7F7F2] min-h-screen">
-        <main className="max-w-4xl mx-auto px-4 py-8">
-          {/* Breadcrumb */}
-          <nav className="flex items-center gap-2 text-xs text-stone-400 mb-6 font-semibold uppercase tracking-wide">
-            <Link href="/" className="hover:text-[#FFB800] transition-colors">Uplift.news</Link>
-            <span className="text-stone-300">›</span>
-            <Link href={`/?category=${article.category}`} className="hover:text-[#FFB800] transition-colors">
-              {article.category}
-            </Link>
-            <span className="text-stone-300">›</span>
-            <span className="text-stone-500 truncate max-w-xs normal-case tracking-normal">{article.title}</span>
-          </nav>
+      <div className="page">
+        <div className="container">
+          <Link href="/" className="back-link">
+            <IconBack /> zurück zur Übersicht
+          </Link>
+        </div>
 
-          <article className="bg-white shadow-sm">
-            <div className="p-6 md:p-8 pb-0">
-              <div className="flex items-center gap-3 mb-4">
-                <CategoryBadge category={article.category} />
-                <time className="text-stone-400 text-sm">{formatDate(article.created_at)}</time>
-              </div>
-
-              <h1
-                className="font-black text-[#1A1A2E] leading-tight mb-6"
-                style={{ fontSize: 'clamp(24px, 4vw, 40px)', lineHeight: '1.15' }}
-              >
-                {article.title}
-              </h1>
+        <article className="article-hero container">
+          <div className="article-meta">
+            <span className="accent">{label}</span>
+            <span>·</span>
+            <span>{rt} Min. Lesen</span>
+            <span>·</span>
+            <span>{fmtDate(article.published_at ?? article.created_at)}</span>
+          </div>
+          <h1 className="article-title">{article.title}</h1>
+          <p className="article-dek">{lede}</p>
+          <div className="article-byline">
+            <Avatar name={article.source} />
+            <div>
+              <div style={{ color: 'var(--ink)', fontWeight: 500 }}>{article.source}</div>
+              <div style={{ fontSize: 12, color: 'var(--mute)' }}>Quelle</div>
             </div>
+            <div style={{ flex: 1 }} />
+            <Reactions articleId={article.id} />
+          </div>
+        </article>
 
-            {article.image_url && (
-              <div className="relative overflow-hidden bg-stone-100" style={{ aspectRatio: '16/7' }}>
-                <Image
-                  src={article.image_url}
-                  alt={article.title}
-                  fill
-                  className="object-cover"
-                  priority
-                />
-              </div>
-            )}
+        <div className="article-img container">
+          <ArticleImage
+            imageUrl={article.image_url}
+            alt={article.title}
+            hue={hue}
+            label={label}
+          />
+        </div>
 
-            <div className="p-6 md:p-8">
-              <div className="space-y-4">
-                {sentences.map((sentence, i) => (
-                  <p key={i} className="text-stone-700 text-lg leading-relaxed">
-                    {sentence}{sentence.endsWith('.') ? '' : '.'}
-                  </p>
-                ))}
-              </div>
+        <div className="container">
+          <div className="article-body">
+            {lede && <p className="lede">{lede}</p>}
+            {body.map((p, i) => <p key={i}>{p}</p>)}
 
-              <div className="mt-8 pt-6 border-t-2 border-[#FFB800] flex items-center gap-3">
-                <div>
-                  <p className="text-xs text-stone-400 uppercase tracking-widest font-bold mb-1">Originalquelle</p>
-                  <a
-                    href={article.source_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[#3DAA5C] hover:text-[#2d8a49] font-bold text-sm transition-colors"
-                  >
+            <div className="divider" />
+
+            <div className="article-source">
+              <div>
+                <span style={{ fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase', fontWeight: 600 }}>
+                  Originalquelle
+                </span>
+                <div style={{ marginTop: 4 }}>
+                  <a href={article.source_url} target="_blank" rel="noopener noreferrer">
                     {article.source} ↗
                   </a>
                 </div>
               </div>
             </div>
-          </article>
 
-          {related.length > 0 && (
-            <section className="mt-8">
-              <div className="flex items-center gap-3 mb-5">
-                <div className="h-1 w-8 bg-[#FFB800]" />
-                <h2 className="text-xl font-black text-[#1A1A2E] uppercase tracking-wide">
-                  Weitere positive Nachrichten
-                </h2>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16, marginTop: 32 }}>
+              <div style={{ fontSize: 14, color: 'var(--mute)' }}>
+                Gefällt dir die Geschichte? Reagier darauf — das hilft uns, mehr davon zu finden.
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4" style={{ gridAutoRows: '200px' }}>
-                {related.map((rel) => (
-                  <ArticleCard key={rel.id} article={rel} />
+              <Reactions articleId={article.id} />
+            </div>
+          </div>
+        </div>
+
+        {related.length > 0 && (
+          <section className="related">
+            <div className="container">
+              <div className="section-head" style={{ marginTop: 0, borderColor: 'var(--line-strong)' }}>
+                <h2>Wenn dich das bewegt hat</h2>
+                <div className="sub">Verwandte Geschichten</div>
+              </div>
+              <div className="mag-grid">
+                {related.map(a => (
+                  <div key={a.id} className="slot-4">
+                    <ArticleCard article={a} size="md" />
+                  </div>
                 ))}
               </div>
-            </section>
-          )}
+            </div>
+          </section>
+        )}
 
-          <div className="mt-8 text-center">
-            <Link
-              href="/"
-              className="inline-flex items-center gap-2 bg-[#FFB800] hover:bg-[#e6a600] text-[#1A1A2E] font-black px-8 py-3 transition-colors"
-            >
-              ← Alle positiven Nachrichten
-            </Link>
-          </div>
-        </main>
+        <div className="container" style={{ paddingBottom: 80 }}>
+          <div style={{ paddingBottom: 80 }} />
+        </div>
       </div>
       <Footer />
     </>

@@ -139,7 +139,7 @@ export default function NewsPage({ initialArticles, initialTotal, hasHero }: Pro
                   key={article.id}
                   className={isLarge ? 'sm:col-span-2' : 'col-span-1'}
                 >
-                  <ArticleCard article={article} size={isLarge ? 'large' : 'small'} />
+                  <ArticleCard article={article} size={isLarge ? 'lg' : 'md'} />
                 </div>
               );
             })}
